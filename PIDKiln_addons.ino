@@ -2,11 +2,26 @@
 ** Function for relays (SSR, EMR) and temperature sensors
 **
 */
+#ifdef MAXTYPE1
+#include <Adafruit_MAX31856.h>
+#else
 #include <MAX31855.h>
+#endif
+
+#ifdef MAXTYPE2
+#include <Adafruit_MAX31856.h>
+#else
+#include <MAX31855.h>
+#endif
+
 
 // Initialize SPI and MAX31855
 SPIClass *ESP32_SPI = new SPIClass(HSPI);
+#ifdef MAXTYPE1
+Adafruit_MAX31856 ThermocoupleA(MAXCS1,ESP32_SPI);
+#else
 MAX31855 ThermocoupleA(MAXCS1);
+#endif
 
 // If we have defines power meter pins
 #ifdef ENERGY_MON_PIN
@@ -21,7 +36,11 @@ double Energy_Usage=0;            // total energy used (Watt/time)
 
 // If you have second thermoucouple
 #ifdef MAXCS2
+#ifdef MAXTYPE2
+Adafruit_MAX31856 ThermocoupleB(MAXCS2,ESP32_SPI);
+#else
 MAX31855 ThermocoupleB(MAXCS2);
+#endif
 #endif
 
 boolean SSR_On; // just to narrow down state changes.. I don't know if this is needed/faster
@@ -70,12 +89,39 @@ Serial.println();
 // ThermocoupleA temperature readout
 //
 void Update_TemperatureA(){
-uint32_t raw;
-double kiln_tmp1;
+#ifdef MAXTYPE1
+  double kiln_tmp1;
+  uint8_t fault = ThermocoupleA.readFault();
+  if (fault) {
+    if (fault & MAX31856_FAULT_CJRANGE){ DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleA Cold Junction Range Fault");}
+    if (fault & MAX31856_FAULT_TCRANGE){ DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleA Thermocouple Range Fault");}
+    if (fault & MAX31856_FAULT_CJHIGH){  DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleA Cold Junction High Fault");}
+    if (fault & MAX31856_FAULT_CJLOW){   DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleA Cold Junction Low Fault");}
+    if (fault & MAX31856_FAULT_TCHIGH){  DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleA Thermocouple High Fault");}
+    if (fault & MAX31856_FAULT_TCLOW){   DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleA Thermocouple Low Fault");}
+    if (fault & MAX31856_FAULT_OVUV){    DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleA Over/Under Voltage Fault");}
+    if (fault & MAX31856_FAULT_OPEN){    DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleA Thermocouple Open Fault");}
+
+    if(TempA_errors<Prefs[PRF_ERROR_GRACE_COUNT].value.uint8){
+      TempA_errors++;
+      DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleA had an error but we are still below grace threshold - continue. Error %d of %d\n",TempA_errors,Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
+    }else{
+      ABORT_Program(PR_ERR_MAX31A_INT_ERR);
+    }
+    return;
+  }
+
+  kiln_tmp1 = ThermocoupleA.readCJTemperature(); 
+  int_temp = (int_temp+kiln_tmp1)/2;
+  
+  kiln_tmp1 = ThermocoupleA.readThermocoupleTemperature();
+  kiln_temp=(kiln_temp*0.9+kiln_tmp1*0.1);    // We try to make bigger hysteresis
+
+#else
+  uint32_t raw;
+  double kiln_tmp1;
 
   raw = ThermocoupleA.readRawData();
-//Serial.print("A");
-//print_bits(raw);
 
   if(!raw){ // probably MAX31855 not connected
     DBG dbgLog(LOG_ERR,"[ADDONS] MAX31855 for ThermocoupleA did not respond\n");
@@ -116,6 +162,8 @@ double kiln_tmp1;
   kiln_tmp1 = ThermocoupleA.getTemperature(raw);
   kiln_temp=(kiln_temp*0.9+kiln_tmp1*0.1);    // We try to make bigger hysteresis
 
+#endif
+
   if(TempA_errors>0) TempA_errors--;  // Lower errors count after proper readout
   
   DBG dbgLog(LOG_DEBUG, "[ADDONS] Temperature sensor A readout: Internal temp = %.1f \t Last temp = %.1f \t Average kiln temp = %.1f\n", int_temp, kiln_tmp1, kiln_temp); 
@@ -126,12 +174,40 @@ double kiln_tmp1;
 // ThermocoupleB temperature readout
 //
 void Update_TemperatureB(){
-uint32_t raw;
-double case_tmp1;
+#ifdef MAXTYPE2
+  double case_tmp1;
+  uint8_t fault = ThermocoupleB.readFault();
+  if (fault) {
+    if (fault & MAX31856_FAULT_CJRANGE){ DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleB Cold Junction Range Fault");}
+    if (fault & MAX31856_FAULT_TCRANGE){ DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleB Thermocouple Range Fault");}
+    if (fault & MAX31856_FAULT_CJHIGH){  DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleB Cold Junction High Fault");}
+    if (fault & MAX31856_FAULT_CJLOW){   DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleB Cold Junction Low Fault");}
+    if (fault & MAX31856_FAULT_TCHIGH){  DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleB Thermocouple High Fault");}
+    if (fault & MAX31856_FAULT_TCLOW){   DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleB Thermocouple Low Fault");}
+    if (fault & MAX31856_FAULT_OVUV){    DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleB Over/Under Voltage Fault");}
+    if (fault & MAX31856_FAULT_OPEN){    DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleB Thermocouple Open Fault");}
+
+    if(TempB_errors<Prefs[PRF_ERROR_GRACE_COUNT].value.uint8){
+      TempB_errors++;
+      DBG dbgLog(LOG_ERR,"[ADDONS] ThermocoupleB had an error but we are still below grace threshold - continue. Error %d of %d\n",TempA_errors,Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
+    }else{
+      ABORT_Program(PR_ERR_MAX31B_INT_ERR);
+    }
+    return;
+  }
+
+  case_tmp1 = ThermocoupleB.readCJTemperature(); 
+  int_temp = (int_temp+case_tmp1)/2;
+  
+  case_tmp1 = ThermocoupleB.readThermocoupleTemperature();
+  case_temp=(case_temp*0.8+case_tmp1*0.2);    // We try to make bigger hysteresis
+
+#else
+  uint32_t raw;
+  double case_tmp1;
 
   raw = ThermocoupleB.readRawData();
-//Serial.print("B");
-//print_bits(raw);
+  
   if(!raw){ // probably MAX31855 not connected
     DBG dbgLog(LOG_ERR,"[ADDONS] MAX31855 for ThermocoupleB did not respond\n");
     ABORT_Program(PR_ERR_MAX31B_NC);
@@ -170,6 +246,8 @@ double case_tmp1;
   
   case_tmp1 = ThermocoupleB.getTemperature(raw);
   case_temp=(case_temp*0.8+case_tmp1*0.2);    // We try to make bigger hysteresis
+
+#endif
   
   if(TempB_errors>0) TempB_errors--;  // Lower errors count after proper readout
 
@@ -246,9 +324,20 @@ void Setup_Addons(){
   pinMode(ALARM_PIN, OUTPUT);
 
   SSR_On=false;
+#ifdef MAXTYPE1
+  ThermocoupleA.begin();
+  ThermocoupleA.setThermocoupleType(MAXTYPE1);
+#else
   ThermocoupleA.begin(ESP32_SPI);
+#endif
 #ifdef MAXCS2
+#ifdef MAXTYPE2
+  ThermocoupleB.begin();
+  ThermocoupleB.setThermocoupleType(MAXTYPE2);
+#else
   ThermocoupleB.begin(ESP32_SPI);
+#endif
+
 #endif
 #ifdef ENERGY_MON_PIN
   emon1.current(ENERGY_MON_PIN, ENERGY_MON_AMPS);
