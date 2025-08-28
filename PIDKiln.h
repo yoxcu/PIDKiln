@@ -23,13 +23,23 @@ const int MAX_Prog_File_Size=10240;  // maximum file size (bytes) that can be up
 //#define SSR2_RELAY_PIN 22   // if you want to use additional SSR for second heater, uncoment this
 
 // Thermocouple variables/defs
-#define MAXCS1  27    // for hardware SPI - HSPI (MOSI-13, MISO-12, CLK-14) - 1st device CS-27
-#define MAXCS2  15    // same SPI - 2nd device CS-15 (comment out if no second thermocouple)
+// available TC board types
+#define TC_BOARD_MAX31855 1
+#define TC_BOARD_MAX31856 2
 
-// if you want to use MAX31856 (supports differnent thermocouple types)
+// put any of the above or do not define depending on your hardware
+#define TC_BOARD_TYPE_KILN TC_BOARD_MAX31855
+#define TC_BOARD_TYPE_HOUSING TC_BOARD_MAX31855
+
+// for hardware SPI - HSPI (MOSI-13, MISO-12, CLK-14) - 1st device CS-27
+#define TC_CS_KILN 27
+// same SPI - 2nd device CS-15 (comment out if no second thermocouple)
+#define TC_CS_HOUSING 15
+
+// if you use MAX31856 (supports differnent thermocouple types)
 // uncomment accordingly
-// #define MAXTYPE1 MAX31856_TCTYPE_J
-// #define MAXTYPE2 MAX31856_TCTYPE_J
+#define TC_TYPE_KILN MAX31856_TCTYPE_J
+#define TC_TYPE_HOUSING MAX31856_TCTYPE_J
 
 // If you have power meter - uncoment this
 //#define ENERGY_MON_PIN 33       // if you don't use - comment out
@@ -135,7 +145,10 @@ time_t Program_run_end=0;         // date/time when program ends - during progra
 int Program_run_step=-1;          // at which step are we now... (has to be it - so we can give it -1)
 uint16_t Program_start_temp=0;    // temperature on start of the program
 uint8_t Program_error=0;          // if program finished with errors - remember number
-byte TempA_errors=0,TempB_errors=0; // how many temperature read errors we have skipped
+
+// how many temperature read errors we have skipped
+byte Temp_Kiln_errors = 0;
+byte Temp_Housing_errors = 0;
 
 typedef enum { // program menu positions
   PR_NONE,

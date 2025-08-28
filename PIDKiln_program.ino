@@ -447,7 +447,7 @@ void START_Program(){
   Program_start_temp=kiln_temp;
   Energy_Usage=0;
   Program_error=0;
-  TempA_errors=TempB_errors=0;  // Reset temperature errors
+  Temp_Kiln_errors=Temp_Housing_errors=0;  // Reset temperature errors
   
   Enable_EMR();
 
@@ -501,7 +501,7 @@ uint32_t now;
     if (xSemaphoreTake(timerSemaphore, 0) == pdTRUE){
 
       // Update temperature readout
-      Update_TemperatureA();
+      Update_Temperature_Kiln();
 
       // Check if there is Alarm ON - if so, lower time and call STOP
       if(ALARM_countdown>0){
@@ -513,9 +513,9 @@ uint32_t now;
       //
       if(cnt1>9) cnt1=0;
       else cnt1++;
-#ifdef MAXCS2
+#ifdef TC_BOARD_TYPE_HOUSING
       if(cnt1==3){  // just to make it in other time then next if cnt1
-        Update_TemperatureB();      // this does not have to be updated so often as kiln temp
+        Update_Temperature_Housing();      // this does not have to be updated so often as kiln temp
       }
 #endif
 #ifdef ENERGY_MON_PIN
