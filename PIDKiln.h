@@ -38,8 +38,8 @@ const int MAX_Prog_File_Size=10240;  // maximum file size (bytes) that can be up
 
 // if you use MAX31856 (supports differnent thermocouple types)
 // uncomment accordingly
-#define TC_TYPE_KILN MAX31856_TCTYPE_J
-#define TC_TYPE_HOUSING MAX31856_TCTYPE_J
+// #define TC_TYPE_KILN MAX31856_TCTYPE_J
+// #define TC_TYPE_HOUSING MAX31856_TCTYPE_J
 
 // If you have power meter - uncoment this
 //#define ENERGY_MON_PIN 33       // if you don't use - comment out
