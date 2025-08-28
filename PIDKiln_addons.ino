@@ -8,12 +8,13 @@
 #include <MAX31855.h>
 #endif
 
+#ifdef MAXCS2
 #ifdef MAXTYPE2
 #include <Adafruit_MAX31856.h>
 #else
 #include <MAX31855.h>
 #endif
-
+#endif
 
 // Initialize SPI and MAX31855
 SPIClass *ESP32_SPI = new SPIClass(HSPI);
