@@ -18,16 +18,22 @@
 #define FONT7 u8g2_font_6x10_tr
 #define FONT8 u8g2_font_bitcasual_tr
 
+#define LCD_CONTRAST 30
+
 // Other variables
 //
 #define LCD_RESET 4   // RST on LCD
 #define LCD_CS 5      // RS on LCD
 #define LCD_CLOCK 18  // E on LCD
 #define LCD_DATA 23   // R/W on LCD
+#define LCD_DC 17   // Data/Command on LCD
 
 // You can switch hardware or software SPI interface to LCD. HW can be up to x10 faster - but requires special pins (and has some errors for me on 5V).
 //U8G2_ST7920_128X64_F_SW_SPI u8g2(U8G2_R2, /* clock=*/ LCD_CLOCK, /* data=*/ LCD_DATA, /* CS=*/ LCD_CS, /* reset=*/ LCD_RESET);
-U8G2_ST7920_128X64_F_HW_SPI u8g2(U8G2_R0, /* CS=*/ LCD_CS, /* reset=*/ LCD_RESET);
+//U8G2_ST7920_128X64_F_HW_SPI u8g2(U8G2_R2, /* CS=*/ LCD_CS, /* reset=*/ LCD_RESET);
+
+U8G2_ST7565_ERC12864_F_4W_HW_SPI u8g2(
+  U8G2_R0,       /* cs=*/ LCD_CS,  /* dc=*/ LCD_DC,  /* reset=*/ LCD_RESET);
 
 
 /*
@@ -998,6 +1004,7 @@ void Setup_LCD(void) {
   u8g2.setBusClock(900000);   // without lowering the clock (default 1Mhz) LCD gets some glitches
   
   u8g2.clearBuffer();         // clear the internal memory
+  u8g2.setContrast(LCD_CONTRAST);
   u8g2.setFont(FONT8);
   u8g2.drawStr(20,30,PVer);
   u8g2.drawStr(38,45,"starting...");
