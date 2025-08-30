@@ -1,8 +1,0 @@
-{
-    "files.associations": {
-        "*.ino": "c",
-        "type_traits": "c",
-        "xtr1common": "c",
-        "xutility": "c"
-    }
-}
